@@ -1,0 +1,93 @@
+﻿@using BlazorInputFile
+ 
+<div class="row">
+    <div class="col-12 p-0">
+        <div class="dropzone @dropClass rounded">
+            <BlazorInputFile.InputFile id="fileInput" multiple title=""
+                       OnChange="HandleFileInputChange"
+                       accept="image/png,image/gif,image/jpeg"
+                       @ondragenter="HandleDragEnter"
+                       @ondragleave="HandleDragLeave" />
+            Upload images
+        </div>
+        @if ((fileTypeError || fileSizeError))
+        {
+            <ul class="validation-errors mb-0">
+                @if (fileTypeError)
+                {
+                    <li class="validation-message">Only image files are accepted.</li>
+                }
+                @if (fileSizeError)
+                {
+                    <li class="validation-message">The max file size is @MaxFileSizeMB MB.</li>
+                }
+            </ul>
+        }
+        @if (selectedFiles != null && selectedFiles.Count > 0)
+        {
+            <div class="col-12">
+                >>> Loading
+            </div>
+        }
+    </div>
+</div>
+ 
+@code {
+    const int MaxFileSizeMB = 5;
+    const int MaxFileSize = MaxFileSizeMB * 1024 * 1024; // 5MB
+    private string dropClass = "";
+    private bool fileSizeError = false;
+    private bool fileTypeError = false;
+    private List<IFileListEntry> selectedFiles = new List<IFileListEntry>();
+ 
+    private void HandleDragEnter()
+    {
+        dropClass = "dropzone-drag";
+    }
+ 
+    private void HandleDragLeave()
+    {
+        dropClass = "";
+    }
+
+    [Parameter]
+    public EventCallback<List<IFileListEntry>> FilesSelected { get; set; }
+ 
+    private async Task HandleFileInputChange(IFileListEntry[] files)
+    {
+        dropClass = "";
+        fileSizeError = false;
+        fileTypeError = false;
+        List<string> acceptedFileTypes = new List<string>() { "image/png", "image/jpeg", "image/gif" };
+        if (files != null)
+        {
+            foreach (var file in files)
+            {
+                bool error = false;
+                if (file.Size > MaxFileSize)
+                {
+                    error = true;
+                    fileSizeError = true;
+                }
+ 
+                if (!acceptedFileTypes.Contains(file.Type))
+                {
+                    error = true;
+                    fileTypeError = true;
+                }
+ 
+                //keep the good files
+                if (!error)
+                {
+                    selectedFiles.Add(file);
+                }
+
+                if (selectedFiles.Count > 0)
+                {
+                    await FilesSelected.InvokeAsync(selectedFiles);
+                    selectedFiles.Clear();
+                }
+            }            
+        }
+    }
+}
